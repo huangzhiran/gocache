@@ -27,17 +27,16 @@ func (l *lru) Get(key string) (Value, bool) {
 func (l *lru) Add(key string, value Value) {
 	if e, ok := l.cache[key]; ok {
 		exist := e.Value.(*entry)
-		l.usedBytes += int64(value.Len()) - int64(exist.value.Len())
 		exist.value = value
 		l.l.MoveToBack(e)
+		l.usedBytes += int64(value.Len()) - int64(exist.value.Len())
 	} else {
-		e := &list.Element{Value: &entry{
+		e := l.l.PushBack(&entry{
 			key:   key,
 			value: value,
-		}}
-		l.usedBytes += int64(len(key)) + int64(value.Len())
+		})
 		l.cache[key] = e
-		l.l.PushBack(e)
+		l.usedBytes += int64(len(key)) + int64(value.Len())
 	}
 	for l.maxBytes > 0 && l.usedBytes > l.maxBytes {
 		l.removeOldest()
